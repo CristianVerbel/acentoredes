@@ -1,0 +1,19 @@
+# Variables de entorno (contienen secretos)
+.env
+
+# Datos locales de OpenClaw
+.openclaw/
+
+# Credenciales de WhatsApp
+credentials/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

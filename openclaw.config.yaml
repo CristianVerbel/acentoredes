@@ -1,0 +1,74 @@
+# =============================================================================
+# OpenClaw - Configuracion para Acento Redes
+# Integracion con WhatsApp
+# =============================================================================
+
+# --- Gateway ---
+gateway:
+  port: 18789
+  bind: "0.0.0.0"
+  auth:
+    mode: password
+    # Cambia esta contrasena en produccion
+    # password: "tu-contrasena-segura"
+
+# --- Modelo de IA ---
+model:
+  # Proveedor: anthropic, openai, deepseek
+  provider: anthropic
+  # Modelo a utilizar (Claude es el recomendado)
+  name: claude-sonnet-4-20250514
+  # Nivel de razonamiento: off, low, medium, high
+  thinkingLevel: medium
+
+# --- Canales de mensajeria ---
+channels:
+  whatsapp:
+    # Politica de acceso para mensajes directos:
+    #   - "pairing": requiere codigo de emparejamiento (recomendado)
+    #   - "allowlist": solo numeros en la lista
+    #   - "open": cualquiera puede escribir (no recomendado)
+    #   - "disabled": DMs deshabilitados
+    dmPolicy: "pairing"
+
+    # Numeros permitidos (formato E.164 con codigo de pais)
+    # Agrega aqui los numeros que pueden interactuar con el bot
+    allowFrom:
+      # - "+573001234567"  # Ejemplo Colombia
+      # - "+521234567890"  # Ejemplo Mexico
+
+    # --- Configuracion de grupos ---
+    # Politica de grupos: "disabled", "allowlist", "open"
+    groupPolicy: "disabled"
+
+    # Numeros permitidos en grupos (si groupPolicy es "allowlist")
+    groupAllowFrom: []
+
+    # --- Opciones de mensajes ---
+    # Limite de caracteres por mensaje (WhatsApp tiene limite de ~65536)
+    textChunkLimit: 4000
+
+    # Tamano maximo de archivos multimedia en MB
+    mediaMaxMb: 50
+
+    # Enviar confirmaciones de lectura
+    sendReadReceipts: true
+
+    # Nivel de reacciones con emoji: off, ack, minimal, extensive
+    reactionLevel: "minimal"
+
+# --- Sesiones ---
+sessions:
+  pruning:
+    enabled: true
+    # Limpiar sesiones inactivas despues de 7 dias
+    maxAgeDays: 7
+
+# --- Seguridad ---
+security:
+  # Sandbox para ejecucion de comandos
+  sandbox:
+    enabled: true
+  # Directorio de trabajo permitido
+  allowedPaths:
+    - "/app/workspace"
