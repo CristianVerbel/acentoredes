@@ -64,6 +64,22 @@ términos) desde el Table Editor.
 Ejecuta [`04_schedule.sql`](04_schedule.sql) (pg_cron) para correrla cada hora,
 o usa la pestaña **Schedules** de la función en el panel.
 
+### Despliegue automático con GitHub Actions (opcional)
+
+El workflow [`.github/workflows/deploy-edge-function.yml`](../.github/workflows/deploy-edge-function.yml)
+redepliega la función al hacer push a sus archivos (o a mano desde la pestaña
+**Actions → Run workflow**), para no volver a pegarla en el panel cuando la edites.
+
+Configura en GitHub → **Settings → Secrets and variables → Actions**:
+
+| Secret | De dónde |
+|--------|----------|
+| `SUPABASE_ACCESS_TOKEN` | [Account → Access Tokens](https://supabase.com/dashboard/account/tokens) |
+| `SUPABASE_PROJECT_REF` | el `xxxx` de `xxxx.supabase.co` |
+
+> Despliega solo el **código**; los secrets de la función (tokens de X/YouTube,
+> `ANTHROPIC_API_KEY`, `INGEST_SECRET`) se siguen gestionando en Supabase.
+
 ## Personalizar la elección
 
 Edita los `insert` de `01_schema.sql` (o las tablas `actors`/`topics`/`sources`

@@ -221,6 +221,7 @@ Todas aceptan los mismos filtros: fecha (`from`/`to`), `source`, `actor`,
 
 ```
 acentoredes/
+├── .github/workflows/         # CI: deploy automático de la Edge Function
 ├── supabase/                  # Opción A: setup web (SQL para el SQL Editor)
 │   ├── 01_schema.sql          # Tablas, RLS y contexto electoral
 │   ├── 02_functions.sql       # Funciones de analítica (RPC)
