@@ -19,6 +19,51 @@ necesitas el **SQL Editor** del panel de Supabase.
    **anon public**. Úsalas como variables de entorno del frontend
    (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) en Vercel.
 
+Con esto ya tienes el dashboard funcionando con datos demo. Si además quieres
+**datos reales**, sigue la sección siguiente.
+
+## Ingesta de datos reales (Edge Function, sin terminal)
+
+La carpeta [`functions/ingest`](functions/ingest) contiene una Edge Function
+(Deno) que lee fuentes, analiza cada mención (sentimiento, emoción, temática,
+actores) y la guarda en `mentions`. **Noticias/RSS** y **Reddit** funcionan
+gratis; **X/Twitter** y **YouTube** requieren credenciales.
+
+### Desplegarla desde el panel web
+
+1. Supabase → **Edge Functions** → **Deploy a new function** (editor del panel).
+2. Nombre: **`ingest`**.
+3. Pega el contenido de [`functions/ingest/index.ts`](functions/ingest/index.ts) y **Deploy**.
+
+### Secrets (Edge Functions → Manage secrets), todos opcionales
+
+| Secret | Para qué |
+|--------|----------|
+| `INGEST_SECRET` | Si lo defines, exige el header `x-ingest-key` para invocar. |
+| `TWITTER_BEARER_TOKEN` | Habilita el conector de X/Twitter (API v2). |
+| `YOUTUBE_API_KEY` | Habilita el conector de YouTube (Data API v3). |
+| `ANTHROPIC_API_KEY` + `USE_LLM=true` | Análisis con Claude en vez de reglas. |
+
+`SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` ya están disponibles automáticamente.
+
+### Probarla
+
+Desde **Edge Functions → ingest → Invoke** (o un `curl`):
+
+```
+POST https://PROYECTO.functions.supabase.co/ingest?limit=50
+Header (si usas secret):  x-ingest-key: TU_INGEST_SECRET
+```
+
+Devuelve cuántas menciones insertó por fuente. Para habilitar/ajustar fuentes,
+edita la tabla `sources` (columnas `enabled` y `config` con feeds/subreddits/
+términos) desde el Table Editor.
+
+### Automatizarla
+
+Ejecuta [`04_schedule.sql`](04_schedule.sql) (pg_cron) para correrla cada hora,
+o usa la pestaña **Schedules** de la función en el panel.
+
 ## Personalizar la elección
 
 Edita los `insert` de `01_schema.sql` (o las tablas `actors`/`topics`/`sources`

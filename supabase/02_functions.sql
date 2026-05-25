@@ -16,12 +16,12 @@ returns jsonb language sql stable as $$
     'actors', coalesce((
       select jsonb_agg(jsonb_build_object(
         'id', id, 'name', name, 'type', 'candidate',
-        'party', party, 'color', color, 'aliases', '[]'::jsonb
+        'party', party, 'color', color, 'aliases', to_jsonb(aliases)
       ) order by sort) from actors
     ), '[]'::jsonb),
     'topics', coalesce((
       select jsonb_agg(jsonb_build_object(
-        'id', id, 'name', name, 'keywords', '[]'::jsonb
+        'id', id, 'name', name, 'keywords', to_jsonb(keywords)
       ) order by sort) from topics
     ), '[]'::jsonb),
     'sources', coalesce((

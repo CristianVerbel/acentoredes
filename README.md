@@ -146,11 +146,18 @@ Tras editar, reinicia el backend y vuelve a sembrar/ingerir.
 
 ## Conectar fuentes reales
 
-La ingesta real corre en el **backend Python** (Opción B). Para alimentar
-**Supabase** con datos reales, ejecuta los conectores apuntando a tu base
-Postgres de Supabase (usando la `DATABASE_URL` del proyecto), o programa un job
-externo / Edge Function que escriba en la tabla `mentions`. El dashboard solo
-necesita leer.
+### En Supabase (web, sin terminal) — Edge Function
+
+La carpeta [`supabase/functions/ingest`](supabase/functions/ingest) trae una
+**Edge Function** (Deno) que lee fuentes, analiza cada mención y la guarda en
+`mentions`. **Noticias/RSS** y **Reddit** funcionan gratis; **X/Twitter** y
+**YouTube** se activan con credenciales (secrets). Despliégala desde el panel
+(**Edge Functions → Deploy a new function → `ingest`**, pega el archivo) y, si
+quieres, prográmala con [`supabase/04_schedule.sql`](supabase/04_schedule.sql).
+Detalle paso a paso en [`supabase/README.md`](supabase/README.md). Las fuentes y
+sus parámetros (feeds, subreddits, términos) se editan en la tabla `sources`.
+
+### En local (Opción B) — conectores Python
 
 Los conectores viven en [`backend/app/connectors/`](backend/app/connectors/) y
 comparten una interfaz común. Cada uno se activa al proveer sus credenciales en
@@ -217,7 +224,9 @@ acentoredes/
 ├── supabase/                  # Opción A: setup web (SQL para el SQL Editor)
 │   ├── 01_schema.sql          # Tablas, RLS y contexto electoral
 │   ├── 02_functions.sql       # Funciones de analítica (RPC)
-│   └── 03_seed_demo.sql       # Generador de datos demo en SQL
+│   ├── 03_seed_demo.sql       # Generador de datos demo en SQL
+│   ├── 04_schedule.sql        # (Opcional) cron para la ingesta
+│   └── functions/ingest/      # Edge Function de ingesta real (Deno/TS)
 ├── config/
 │   └── election.yaml          # Contexto electoral (Opción B / local)
 ├── backend/                   # Opción B: API FastAPI
