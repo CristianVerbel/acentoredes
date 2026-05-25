@@ -1,0 +1,127 @@
+# =============================================================================
+# Configuracion del Monitor Electoral de Escucha Digital
+# -----------------------------------------------------------------------------
+# Este archivo define el "contexto" que el monitor analiza: actores politicos,
+# tematicas (issues) y fuentes de datos. Es generico y configurable: edita los
+# actores, tematicas y palabras clave para adaptarlo a cualquier eleccion/pais.
+#
+# Tras editar este archivo, reinicia el backend para recargar la configuracion.
+# =============================================================================
+
+project:
+  name: "Monitor Electoral"
+  language: "es"
+  country: "GENERICO"
+  election: "Elecciones Generales"
+  timezone: "America/Bogota"
+
+# -----------------------------------------------------------------------------
+# Actores: candidatos, partidos o figuras a monitorear.
+# "aliases" son las variantes de texto (incluyendo @usuarios) usadas para
+# detectar menciones a este actor en el contenido.
+# -----------------------------------------------------------------------------
+actors:
+  - id: "candidato_a"
+    name: "Candidato A"
+    type: "candidate"
+    party: "Partido Azul"
+    color: "#2563eb"
+    aliases: ["Candidato A", "Cand A", "@candidatoA", "el candidato azul"]
+
+  - id: "candidato_b"
+    name: "Candidata B"
+    type: "candidate"
+    party: "Partido Verde"
+    color: "#16a34a"
+    aliases: ["Candidata B", "Cand B", "@candidataB", "la candidata verde"]
+
+  - id: "candidato_c"
+    name: "Candidato C"
+    type: "candidate"
+    party: "Partido Naranja"
+    color: "#ea580c"
+    aliases: ["Candidato C", "Cand C", "@candidatoC", "el naranja"]
+
+  - id: "candidato_d"
+    name: "Candidata D"
+    type: "candidate"
+    party: "Partido Morado"
+    color: "#9333ea"
+    aliases: ["Candidata D", "Cand D", "@candidataD"]
+
+# -----------------------------------------------------------------------------
+# Tematicas (issues): los grandes temas de la conversacion publica.
+# El analizador clasifica cada mencion en una tematica usando estas palabras
+# clave (o con ayuda del LLM si esta configurado).
+# -----------------------------------------------------------------------------
+topics:
+  - id: "economia"
+    name: "Economia y empleo"
+    keywords: ["economia", "economía", "inflacion", "inflación", "empleo", "desempleo", "impuestos", "salario", "trabajo", "costo de vida", "precios"]
+
+  - id: "seguridad"
+    name: "Seguridad"
+    keywords: ["seguridad", "crimen", "delincuencia", "violencia", "policia", "policía", "narcotrafico", "narcotráfico", "homicidios", "robo"]
+
+  - id: "salud"
+    name: "Salud"
+    keywords: ["salud", "hospital", "hospitales", "eps", "medicina", "medicamentos", "sistema de salud", "pandemia"]
+
+  - id: "educacion"
+    name: "Educacion"
+    keywords: ["educacion", "educación", "colegios", "universidad", "universidades", "docentes", "profesores", "estudiantes", "matricula"]
+
+  - id: "corrupcion"
+    name: "Corrupcion y transparencia"
+    keywords: ["corrupcion", "corrupción", "transparencia", "soborno", "coima", "escandalo", "escándalo", "robo de recursos", "clientelismo"]
+
+  - id: "medio_ambiente"
+    name: "Medio ambiente"
+    keywords: ["ambiente", "medioambiente", "clima", "deforestacion", "deforestación", "agua", "contaminacion", "contaminación", "energia", "energía"]
+
+  - id: "migracion"
+    name: "Migracion"
+    keywords: ["migracion", "migración", "migrantes", "frontera", "refugiados", "venezolanos", "xenofobia"]
+
+  - id: "infraestructura"
+    name: "Infraestructura y servicios"
+    keywords: ["infraestructura", "vias", "vías", "transporte", "movilidad", "obras", "servicios publicos", "servicios públicos", "agua potable", "energia electrica"]
+
+# -----------------------------------------------------------------------------
+# Fuentes de datos. Las APIs oficiales suelen requerir credenciales (ver .env).
+# Si una fuente no tiene credenciales, el conector queda en modo "no disponible"
+# y el monitor funciona con los datos demo sembrados.
+# -----------------------------------------------------------------------------
+sources:
+  twitter:
+    enabled: true
+    label: "X / Twitter"
+    # Requiere TWITTER_BEARER_TOKEN en .env para datos reales.
+    query_terms: ["elecciones", "voto", "campaña"]
+
+  news:
+    enabled: true
+    label: "Noticias / RSS"
+    # Feeds RSS publicos (gratuitos). Reemplaza por los medios de tu pais.
+    feeds:
+      - "https://feeds.bbci.co.uk/mundo/rss.xml"
+      - "https://www.eltiempo.com/rss/colombia.xml"
+
+  reddit:
+    enabled: true
+    label: "Reddit / Foros"
+    subreddits: ["politica", "colombia", "mexico"]
+
+  youtube:
+    enabled: false
+    label: "YouTube"
+    # Requiere YOUTUBE_API_KEY en .env para datos reales.
+    query_terms: ["elecciones", "debate presidencial"]
+
+  tiktok:
+    enabled: false
+    label: "TikTok"
+
+  instagram:
+    enabled: false
+    label: "Instagram"

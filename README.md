@@ -1,157 +1,189 @@
-# Acento Redes - OpenClaw + WhatsApp
+# Acento Redes — Monitor Electoral de Escucha Digital
 
-Integracion de [OpenClaw](https://openclaw.ai/) con WhatsApp para Acento Redes. OpenClaw es un asistente de IA personal open-source que se conecta directamente con WhatsApp mediante la libreria Baileys.
+Herramienta de **escucha digital (social listening)** para leer qué dice la
+población en redes sociales y medios, con un **monitor de temáticas y
+sentimiento** sobre una elección.
 
-## Requisitos
+Ingesta menciones de varias fuentes (X/Twitter, YouTube, Reddit, Noticias/RSS),
+las analiza (sentimiento, emoción, temática y actores políticos mencionados) y
+las expone en un **dashboard** interactivo con KPIs, evolución temporal, share
+of voice por candidato, agenda de temáticas, emociones y un feed de menciones.
 
-- **Node.js 22+** (recomendado Node 24)
-- **npm** o **pnpm**
-- **API Key** de Anthropic (Claude) u OpenAI
-- **Telefono con WhatsApp** para vincular el bot
-
-## Inicio Rapido
-
-### Opcion 1: Setup automatizado (recomendado)
-
-```bash
-# 1. Clonar el repositorio
-git clone https://github.com/cristianverbel/acentoredes.git
-cd acentoredes
-
-# 2. Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tu API key
-
-# 3. Ejecutar setup
-./setup.sh
+```
+┌──────────────┐   ┌──────────────────────┐   ┌───────────────┐   ┌─────────────┐
+│  Conectores  │ → │  Análisis            │ → │  Base de datos│ → │  Dashboard  │
+│  X / YT /    │   │  sentimiento + tema  │   │  (SQLite)     │   │  Next.js    │
+│  Reddit/RSS  │   │  + emoción + actores │   │               │   │  + Recharts │
+└──────────────┘   └──────────────────────┘   └───────────────┘   └─────────────┘
+        ingesta            FastAPI / Python                            React
 ```
 
-El script te guiara paso a paso: instala OpenClaw, configura WhatsApp y arranca el gateway.
+> **Estado:** dashboard funcional con **datos demo**. Las APIs oficiales de
+> redes suelen ser pagas/limitadas; el monitor viene sembrado con datos de
+> ejemplo y con conectores listos para enchufar credenciales reales.
 
-### Opcion 2: Docker Compose
+---
 
-```bash
-# 1. Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tu API key
+## Arquitectura
 
-# 2. Levantar el servicio
-docker compose up -d
+| Capa | Tecnología | Carpeta |
+|------|------------|---------|
+| Backend / API | Python · FastAPI · SQLAlchemy | [`backend/`](backend/) |
+| Frontend / Dashboard | Next.js · React · Recharts · Tailwind | [`frontend/`](frontend/) |
+| Contexto electoral | YAML configurable | [`config/election.yaml`](config/election.yaml) |
 
-# 3. Vincular WhatsApp (escanear QR)
-docker exec -it acentoredes-openclaw openclaw channels login --channel whatsapp
-```
+El **contexto** (candidatos, partidos, temáticas y fuentes) es **genérico y
+configurable**: edita `config/election.yaml` para adaptarlo a cualquier
+elección o país, sin tocar código.
 
-### Opcion 3: Instalacion manual
+---
 
-```bash
-# 1. Instalar OpenClaw
-npm install -g openclaw@latest
+## Inicio rápido (demo)
 
-# 2. Configuracion inicial
-openclaw onboard --install-daemon
+Requisitos: **Python 3.11+** y **Node.js 20+**.
 
-# 3. Instalar plugin de WhatsApp
-openclaw plugins install @openclaw/whatsapp
-
-# 4. Copiar configuracion
-cp openclaw.config.yaml ~/.openclaw/config.yaml
-
-# 5. Vincular WhatsApp (escanear codigo QR)
-openclaw channels login --channel whatsapp
-
-# 6. Iniciar el gateway
-openclaw gateway --port 18789 --verbose
-```
-
-## Configuracion
-
-### Variables de entorno (.env)
-
-| Variable | Descripcion | Requerida |
-|----------|-------------|-----------|
-| `ANTHROPIC_API_KEY` | API key de Anthropic (Claude) | Si* |
-| `OPENAI_API_KEY` | API key de OpenAI | Si* |
-| `OPENCLAW_MODEL_PROVIDER` | Proveedor: `anthropic`, `openai`, `deepseek` | No (default: anthropic) |
-| `GATEWAY_PORT` | Puerto del gateway | No (default: 18789) |
-
-\* Al menos una API key es requerida segun el proveedor elegido.
-
-### Configuracion de WhatsApp (openclaw.config.yaml)
-
-Las opciones principales estan en la seccion `channels.whatsapp`:
-
-- **`dmPolicy`**: Controla quien puede enviar mensajes directos
-  - `pairing` - Requiere codigo de emparejamiento (recomendado)
-  - `allowlist` - Solo numeros en la lista
-  - `open` - Cualquiera puede escribir
-  - `disabled` - DMs deshabilitados
-
-- **`allowFrom`**: Lista de numeros permitidos en formato E.164
-  ```yaml
-  allowFrom:
-    - "+573001234567"  # Colombia
-    - "+521234567890"  # Mexico
-  ```
-
-- **`groupPolicy`**: Controla acceso en grupos (`disabled`, `allowlist`, `open`)
-
-- **`reactionLevel`**: Reacciones con emoji (`off`, `ack`, `minimal`, `extensive`)
-
-## Uso
-
-Una vez configurado y con el gateway corriendo, envia un mensaje de WhatsApp al numero vinculado y OpenClaw respondera automaticamente.
-
-### Comandos utiles
+### 1. Backend (API + datos demo)
 
 ```bash
-# Ver estado del bot
-openclaw doctor
+cd backend
+pip install -r requirements.txt
 
-# Listar solicitudes de emparejamiento pendientes
-openclaw pairing list whatsapp
+# Sembrar datos demo (menciones simuladas de ~75 días)
+python -m scripts.seed_demo --days 75 --per-day 60 --reset
 
-# Aprobar un emparejamiento
-openclaw pairing approve whatsapp <CODIGO>
-
-# Enviar mensaje desde la terminal
-openclaw message send --to "+573001234567" --message "Hola desde Acento Redes"
-
-# Ejecutar agente con tarea especifica
-openclaw agent --message "Responde las preguntas frecuentes" --thinking high
+# Levantar la API en http://localhost:8000
+uvicorn app.main:app --reload --port 8000
 ```
 
-### Logs y monitoreo
+Documentación interactiva de la API en `http://localhost:8000/docs`.
+
+### 2. Frontend (dashboard)
+
+En otra terminal:
 
 ```bash
-# Ver logs del gateway
-openclaw gateway --verbose
-
-# Con Docker
-docker compose logs -f openclaw
+cd frontend
+npm install
+cp .env.local.example .env.local   # NEXT_PUBLIC_API_URL=http://localhost:8000
+npm run dev
 ```
 
-## Notas Importantes
+Abre `http://localhost:3000`.
 
-- **Telefono activo**: Tu telefono debe permanecer conectado a internet. Si se desconecta por mas de ~14 dias, WhatsApp desvinculara la sesion.
-- **Numero dedicado**: Se recomienda usar un numero de telefono exclusivo para el bot, separado de tu numero personal.
-- **Credenciales**: Las credenciales de WhatsApp se guardan en `~/.openclaw/credentials/whatsapp/`.
-- **Seguridad**: Nunca compartas tu archivo `.env` ni las credenciales de WhatsApp.
+---
 
-## Estructura del Proyecto
+## Configurar la elección
+
+Edita [`config/election.yaml`](config/election.yaml):
+
+- **`actors`** — candidatos/partidos a monitorear, con sus `aliases` (variantes
+  de texto y @usuarios) para detectar menciones.
+- **`topics`** — temáticas (economía, seguridad, salud…) con `keywords` para
+  clasificar cada mención.
+- **`sources`** — qué fuentes habilitar y sus parámetros (feeds RSS,
+  subreddits, términos de búsqueda).
+
+Tras editar, reinicia el backend y vuelve a sembrar/ingerir.
+
+---
+
+## Conectar fuentes reales
+
+Los conectores viven en [`backend/app/connectors/`](backend/app/connectors/) y
+comparten una interfaz común. Cada uno se activa al proveer sus credenciales en
+`backend/.env` (ver [`backend/.env.example`](backend/.env.example)):
+
+| Fuente | Conector | Requiere |
+|--------|----------|----------|
+| Noticias / RSS | `news.py` | `pip install feedparser` (gratis) |
+| Reddit / Foros | `reddit.py` | Nada para demo (endpoint JSON público) |
+| X / Twitter | `twitter.py` | `TWITTER_BEARER_TOKEN` (API v2) |
+| YouTube | `youtube.py` | `YOUTUBE_API_KEY` (Data API v3) |
+| TikTok / Instagram | (patrón análogo) | Acceso de partner/API |
+
+Una fuente sin credenciales queda **"no disponible"** y la ingesta la omite;
+el monitor sigue funcionando con los datos demo. Para disparar una ronda de
+ingesta real:
+
+```bash
+curl -X POST "http://localhost:8000/api/ingest?limit_per_source=100"
+```
+
+### Análisis con IA (opcional)
+
+Por defecto el análisis usa un **analizador por reglas** (léxico en español +
+palabras clave), sin dependencias externas. Para un análisis más preciso con
+Claude, en `backend/.env`:
+
+```
+USE_LLM_ANALYSIS=true
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Si el LLM falla por cualquier motivo, el sistema cae de vuelta al analizador por
+reglas para no detenerse.
+
+---
+
+## Endpoints principales de la API
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| GET | `/api/config` | Contexto electoral (actores, temáticas, fuentes) |
+| GET | `/api/summary` | KPIs: volumen, sentimiento neto, alcance… |
+| GET | `/api/timeline` | Evolución diaria de volumen y sentimiento |
+| GET | `/api/topics` | Estadísticas por temática |
+| GET | `/api/sources` | Estadísticas por fuente |
+| GET | `/api/share-of-voice` | Share of voice y sentimiento por actor |
+| GET | `/api/emotions` | Distribución de emociones |
+| GET | `/api/mentions` | Feed de menciones (paginado, filtrable) |
+| POST | `/api/ingest` | Dispara una ronda de ingesta real |
+
+Todos los endpoints de lectura aceptan filtros por query string:
+`from`, `to`, `source`, `actor`, `topic`, `sentiment`, `q` (búsqueda de texto).
+
+---
+
+## Estructura del proyecto
 
 ```
 acentoredes/
-├── docker-compose.yml      # Configuracion de Docker
-├── openclaw.config.yaml    # Configuracion de OpenClaw y WhatsApp
-├── setup.sh                # Script de instalacion automatizada
-├── .env.example            # Template de variables de entorno
-├── .gitignore              # Archivos excluidos de git
-└── README.md               # Esta documentacion
+├── config/
+│   └── election.yaml          # Contexto electoral configurable
+├── backend/                   # API FastAPI
+│   ├── app/
+│   │   ├── main.py            # App + routers + CORS
+│   │   ├── config.py          # Settings + carga de election.yaml
+│   │   ├── database.py        # SQLAlchemy
+│   │   ├── models.py          # Modelo Mention
+│   │   ├── schemas.py         # Esquemas de respuesta
+│   │   ├── queries.py         # Agregaciones analíticas
+│   │   ├── ingest.py          # Orquestador de ingesta
+│   │   ├── analysis/          # Sentimiento/tema (reglas + LLM opcional)
+│   │   ├── connectors/        # X, YouTube, Reddit, RSS
+│   │   └── routers/           # analytics, mentions, meta
+│   └── scripts/seed_demo.py   # Generador de datos demo
+├── frontend/                  # Dashboard Next.js
+│   ├── app/                   # Página principal + layout
+│   ├── components/            # Gráficos y widgets (Recharts)
+│   └── lib/                   # Cliente de API, tipos, formato
+└── README.md
 ```
 
-## Recursos
+---
 
-- [Documentacion oficial de OpenClaw](https://docs.openclaw.ai)
-- [Guia de WhatsApp de OpenClaw](https://docs.openclaw.ai/channels/whatsapp)
-- [Repositorio de OpenClaw en GitHub](https://github.com/openclaw/openclaw)
+## Integración con WhatsApp (OpenClaw)
+
+El repositorio también incluye una integración de **OpenClaw + WhatsApp**
+(`docker-compose.yml`, `openclaw.config.yaml`, `setup.sh`). Puede usarse como
+**canal de alertas** del monitor —por ejemplo, notificar picos de menciones
+negativas a un grupo— o de forma independiente. Ver
+[`openclaw.config.yaml`](openclaw.config.yaml) y `setup.sh`.
+
+---
+
+## Notas
+
+- Los datos demo son **simulados** y solo sirven para visualizar el dashboard.
+- Respeta los Términos de Servicio de cada plataforma al ingerir datos reales.
+- Las credenciales viven en `backend/.env` (ignorado por git). Nunca las subas.

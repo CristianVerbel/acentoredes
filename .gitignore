@@ -7,8 +7,22 @@
 # Credenciales de WhatsApp
 credentials/
 
-# Node
+# Node / Next.js
 node_modules/
+.next/
+out/
+.env.local
+next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Base de datos local del monitor
+*.db
+backend/monitor.db
 
 # OS
 .DS_Store
