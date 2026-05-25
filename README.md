@@ -12,10 +12,10 @@ of voice por candidato, agenda de temáticas, emociones y un feed de menciones.
 ```
 ┌──────────────┐   ┌──────────────────────┐   ┌───────────────┐   ┌─────────────┐
 │  Conectores  │ → │  Análisis            │ → │  Base de datos│ → │  Dashboard  │
-│  X / YT /    │   │  sentimiento + tema  │   │  (SQLite)     │   │  Next.js    │
-│  Reddit/RSS  │   │  + emoción + actores │   │               │   │  + Recharts │
+│  X / YT /    │   │  sentimiento + tema  │   │  Supabase     │   │  Next.js    │
+│  Reddit/RSS  │   │  + emoción + actores │   │  (Postgres)   │   │  + Recharts │
 └──────────────┘   └──────────────────────┘   └───────────────┘   └─────────────┘
-        ingesta            FastAPI / Python                            React
+                                                  funciones SQL        React
 ```
 
 > **Estado:** dashboard funcional con **datos demo**. Las APIs oficiales de
@@ -24,23 +24,75 @@ of voice por candidato, agenda de temáticas, emociones y un feed de menciones.
 
 ---
 
-## Arquitectura
+## Dos formas de montarlo
 
-| Capa | Tecnología | Carpeta |
-|------|------------|---------|
-| Backend / API | Python · FastAPI · SQLAlchemy | [`backend/`](backend/) |
-| Frontend / Dashboard | Next.js · React · Recharts · Tailwind | [`frontend/`](frontend/) |
-| Contexto electoral | YAML configurable | [`config/election.yaml`](config/election.yaml) |
+| Opción | Cómo | Ideal si… |
+|--------|------|-----------|
+| **A — Web, sin terminal** (recomendada) | **Supabase** (base de datos + analítica en SQL) + **Vercel** (dashboard). Todo desde paneles web. | No quieres usar la línea de comandos. |
+| **B — Local** | Backend **Python/FastAPI** + frontend Next.js en tu máquina. | Quieres correr conectores e ingesta tú mismo. |
 
-El **contexto** (candidatos, partidos, temáticas y fuentes) es **genérico y
-configurable**: edita `config/election.yaml` para adaptarlo a cualquier
-elección o país, sin tocar código.
+El **contexto** (candidatos, partidos, temáticas) es **genérico y configurable**
+en ambos casos.
 
 ---
 
-## Inicio rápido (demo)
+## Opción A — Web, sin terminal (Supabase + Vercel)
+
+No necesitas instalar nada ni usar la terminal. Todo se hace en paneles web.
+
+### 1. Crear el proyecto en Supabase
+
+1. Entra a [supabase.com](https://supabase.com) → **New project** (plan gratuito sirve).
+2. Espera a que la base de datos quede lista (~1–2 min).
+
+### 2. Cargar el esquema, las funciones y los datos demo (SQL Editor)
+
+En el panel de Supabase abre **SQL Editor → New query**, y ejecuta **en este orden**
+el contenido de la carpeta [`supabase/`](supabase/) (copia y pega cada archivo, luego **Run**):
+
+1. [`supabase/01_schema.sql`](supabase/01_schema.sql) — tablas, seguridad y contexto electoral.
+2. [`supabase/02_functions.sql`](supabase/02_functions.sql) — funciones de analítica que consume el dashboard.
+3. [`supabase/03_seed_demo.sql`](supabase/03_seed_demo.sql) — genera ~4.500 menciones demo.
+
+Al terminar el paso 3 verás el número de menciones creadas. Listo: ya tienes datos.
+
+### 3. Copiar las llaves del proyecto
+
+En Supabase → **Project Settings → API**, copia:
+- **Project URL** (ej. `https://xxxx.supabase.co`)
+- La clave **anon public** (es segura de exponer; el acceso está limitado por RLS).
+
+### 4. Desplegar el dashboard en Vercel (importando este repo)
+
+1. Sube/usa este repositorio en GitHub.
+2. Entra a [vercel.com](https://vercel.com) → **Add New… → Project** → importa el repo.
+3. En **Root Directory** selecciona **`frontend`**.
+4. En **Environment Variables** añade:
+   - `NEXT_PUBLIC_SUPABASE_URL` = el Project URL de Supabase
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = la clave anon public
+5. **Deploy**. Al terminar tendrás la URL pública del monitor. 🎉
+
+> Si cambias datos o configuración en Supabase, el dashboard se actualiza solo
+> (lee en tiempo real). Solo necesitas redeploy si cambias variables de entorno.
+
+### Re-sembrar o limpiar datos
+
+Desde el SQL Editor de Supabase:
+
+```sql
+select seed_demo_data(75, 60);   -- re-genera datos demo (días, menciones/día)
+delete from mentions;            -- vacía las menciones
+```
+
+---
+
+## Opción B — Local (Python/FastAPI + Next.js)
 
 Requisitos: **Python 3.11+** y **Node.js 20+**.
+
+> Nota: el frontend de este repo está configurado para **Supabase** (Opción A).
+> Para usarlo contra el backend local de FastAPI, apunta `lib/api.ts` a la API
+> REST (`/api/...`) en lugar de a las funciones RPC de Supabase.
 
 ### 1. Backend (API + datos demo)
 
@@ -74,7 +126,12 @@ Abre `http://localhost:3000`.
 
 ## Configurar la elección
 
-Edita [`config/election.yaml`](config/election.yaml):
+**Opción A (Supabase):** edita las tablas `actors`, `topics` y `sources` desde
+el **Table Editor** de Supabase, o cambia los `insert` de
+[`supabase/01_schema.sql`](supabase/01_schema.sql) antes de ejecutarlo. El
+dashboard refleja los cambios automáticamente.
+
+**Opción B (local):** edita [`config/election.yaml`](config/election.yaml):
 
 - **`actors`** — candidatos/partidos a monitorear, con sus `aliases` (variantes
   de texto y @usuarios) para detectar menciones.
@@ -88,6 +145,12 @@ Tras editar, reinicia el backend y vuelve a sembrar/ingerir.
 ---
 
 ## Conectar fuentes reales
+
+La ingesta real corre en el **backend Python** (Opción B). Para alimentar
+**Supabase** con datos reales, ejecuta los conectores apuntando a tu base
+Postgres de Supabase (usando la `DATABASE_URL` del proyecto), o programa un job
+externo / Edge Function que escriba en la tabla `mentions`. El dashboard solo
+necesita leer.
 
 Los conectores viven en [`backend/app/connectors/`](backend/app/connectors/) y
 comparten una interfaz común. Cada uno se activa al proveer sus credenciales en
@@ -125,22 +188,25 @@ reglas para no detenerse.
 
 ---
 
-## Endpoints principales de la API
+## API: REST (Python) y RPC (Supabase)
 
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| GET | `/api/config` | Contexto electoral (actores, temáticas, fuentes) |
-| GET | `/api/summary` | KPIs: volumen, sentimiento neto, alcance… |
-| GET | `/api/timeline` | Evolución diaria de volumen y sentimiento |
-| GET | `/api/topics` | Estadísticas por temática |
-| GET | `/api/sources` | Estadísticas por fuente |
-| GET | `/api/share-of-voice` | Share of voice y sentimiento por actor |
-| GET | `/api/emotions` | Distribución de emociones |
-| GET | `/api/mentions` | Feed de menciones (paginado, filtrable) |
-| POST | `/api/ingest` | Dispara una ronda de ingesta real |
+El dashboard consume la misma analítica en ambas opciones. En Supabase son
+**funciones RPC** (`supabase.rpc(...)`); en el backend Python son **endpoints REST**.
 
-Todos los endpoints de lectura aceptan filtros por query string:
-`from`, `to`, `source`, `actor`, `topic`, `sentiment`, `q` (búsqueda de texto).
+| Analítica | REST (Python) | RPC (Supabase) |
+|-----------|---------------|----------------|
+| Contexto (actores/temáticas/fuentes) | `GET /api/config` | `get_config()` |
+| KPIs / resumen | `GET /api/summary` | `get_summary(...)` |
+| Evolución temporal | `GET /api/timeline` | `get_timeline(...)` |
+| Temáticas | `GET /api/topics` | `get_topics(...)` |
+| Fuentes | `GET /api/sources` | `get_sources(...)` |
+| Share of voice | `GET /api/share-of-voice` | `get_share_of_voice(...)` |
+| Emociones | `GET /api/emotions` | `get_emotions(...)` |
+| Feed de menciones | `GET /api/mentions` | `get_mentions(...)` |
+| Ingesta real | `POST /api/ingest` | (job externo / Edge Function) |
+
+Todas aceptan los mismos filtros: fecha (`from`/`to`), `source`, `actor`,
+`topic`, `sentiment` y `q` (búsqueda de texto).
 
 ---
 
@@ -148,9 +214,13 @@ Todos los endpoints de lectura aceptan filtros por query string:
 
 ```
 acentoredes/
+├── supabase/                  # Opción A: setup web (SQL para el SQL Editor)
+│   ├── 01_schema.sql          # Tablas, RLS y contexto electoral
+│   ├── 02_functions.sql       # Funciones de analítica (RPC)
+│   └── 03_seed_demo.sql       # Generador de datos demo en SQL
 ├── config/
-│   └── election.yaml          # Contexto electoral configurable
-├── backend/                   # API FastAPI
+│   └── election.yaml          # Contexto electoral (Opción B / local)
+├── backend/                   # Opción B: API FastAPI
 │   ├── app/
 │   │   ├── main.py            # App + routers + CORS
 │   │   ├── config.py          # Settings + carga de election.yaml
@@ -163,10 +233,10 @@ acentoredes/
 │   │   ├── connectors/        # X, YouTube, Reddit, RSS
 │   │   └── routers/           # analytics, mentions, meta
 │   └── scripts/seed_demo.py   # Generador de datos demo
-├── frontend/                  # Dashboard Next.js
+├── frontend/                  # Dashboard Next.js (Supabase)
 │   ├── app/                   # Página principal + layout
 │   ├── components/            # Gráficos y widgets (Recharts)
-│   └── lib/                   # Cliente de API, tipos, formato
+│   └── lib/                   # Cliente Supabase, API, tipos, formato
 └── README.md
 ```
 
@@ -186,4 +256,7 @@ negativas a un grupo— o de forma independiente. Ver
 
 - Los datos demo son **simulados** y solo sirven para visualizar el dashboard.
 - Respeta los Términos de Servicio de cada plataforma al ingerir datos reales.
-- Las credenciales viven en `backend/.env` (ignorado por git). Nunca las subas.
+- La clave **anon** de Supabase es pública por diseño; el acceso lo limita
+  **RLS** (en el SQL se habilita solo lectura). Nunca expongas la clave
+  **service_role** en el frontend.
+- Las credenciales del backend local viven en `backend/.env` (ignorado por git).

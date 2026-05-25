@@ -79,10 +79,12 @@ export default function Page() {
     return (
       <main className="mx-auto max-w-2xl p-10">
         <div className="card">
-          <div className="card-title text-negative">No se pudo conectar con el backend</div>
+          <div className="card-title text-negative">No se pudo conectar con Supabase</div>
           <p className="muted mt-2">{error}</p>
           <p className="muted mt-2">
-            Verifica que la API esté corriendo y que <code>NEXT_PUBLIC_API_URL</code> apunte a ella.
+            Verifica que <code>NEXT_PUBLIC_SUPABASE_URL</code> y{" "}
+            <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> estén configuradas y que hayas ejecutado los
+            scripts SQL de la carpeta <code>supabase/</code> (esquema, funciones y datos demo).
           </p>
         </div>
       </main>
